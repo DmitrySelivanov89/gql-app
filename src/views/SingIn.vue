@@ -28,30 +28,29 @@
         />
       </v-card-text>
       <v-divider></v-divider>
-      <v-card-actions>
+      <v-card-actions class="ma-auto">
         <v-btn
-            :disabled="!isValid || isLoading"
-            class="mr-4 info"
+            :disabled="!isValid || isLoading || this.password && this.email === '' "
+            class="ma-5 info"
             @click="signIn"
             @keydown.enter="signIn"
         >
           Sign In
         </v-btn>
-        <v-btn class="mr-4 info" @click="$router.push({ name: 'SignUp' })">
+        <v-btn class="ma-5 info" @click="$router.push({ name: 'SignUp' })">
           Sign Up
         </v-btn>
-        <v-alert v-if="!isValid" class="ma-4" dense outlined type="error">
+        <v-alert v-if="!isValid" class="ma-auto" dense outlined type="error">
           Wrong login/password combination
         </v-alert>
       </v-card-actions>
     </v-form>
-    <div class="text-center">
+    <div v-if="isLoading" class="text-center ma-5 ">
       <v-progress-circular
-          v-if="isLoading"
           :rotate="360"
           :size="100"
           :value="valueProgress"
-          :width="15"
+          :width="10"
           color="primary"
       >
         {{ valueProgress }}
@@ -128,7 +127,6 @@ export default {
   },
   methods: {
     signIn() {
-      this.isLoading = true;
       this.$apollo
           .mutate({
             mutation: AUTHENTICATE_MUTATION,
@@ -148,10 +146,11 @@ export default {
             );
             console.log(response);
             this.$router.push("/Dashboard");
+
           })
           .catch((error) => console.log(error));
-
       this.$v.$touch();
+      this.isLoading = true;
       this.signedIn = true;
     },
   },

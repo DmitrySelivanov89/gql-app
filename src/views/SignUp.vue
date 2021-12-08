@@ -22,27 +22,39 @@
             prepend-icon="mdi-lock"
             @blur="$v.password.$touch()"
             @input="$v.password.$touch()"
+            @keydown.enter="signUp"
             @click:append="showPassword = !showPassword"
         />
       </v-card-text>
       <v-divider></v-divider>
-      <v-card-actions>
-        <v-btn class="mr-4 info" @click="$router.push({ name: 'SignIn' })">
+      <v-card-actions class="ma-auto">
+        <v-btn class="ma-5 info" @click="$router.push({ name: 'SignIn' })">
           Sign In
         </v-btn>
         <v-btn
-            :disabled="!isValid"
-            class="mr-4 info"
+            :disabled="!isValid || isLoading || this.password && this.email === '' "
+            class="ma-5 info"
             @click="signUp"
             @keydown.enter="signUp"
         >
           Sign Up
         </v-btn>
-        <v-alert v-if="signedUp" dense outlined type="error">
+        <v-alert v-if="signedUp" class="ma-5" dense outlined type="error">
           Login already taken
         </v-alert>
       </v-card-actions>
     </v-form>
+    <div v-if="isLoading" class="text-center ma-5 ">
+      <v-progress-circular
+          :rotate="360"
+          :size="100"
+          :value="valueProgress"
+          :width="10"
+          color="primary"
+      >
+        {{ valueProgress }}
+      </v-progress-circular>
+    </div>
   </v-card>
 </template>
 
@@ -72,12 +84,24 @@ export default {
       signedUp: false,
       showPassword: false,
       isValid: true,
+      isLoading: false,
+      interval: {},
+      valueProgress: 0,
     };
   },
 
   validations: {
     email: {required, email},
     password: {required, minLength: minLength(8)},
+  },
+
+  mounted() {
+    this.interval = setInterval(() => {
+      if (this.valueProgress === 100) {
+        return (this.valueProgress = 0);
+      }
+      this.valueProgress += 20;
+    }, 3000);
   },
 
   computed: {
@@ -92,7 +116,7 @@ export default {
       const errors = [];
       if (!this.$v.password.$dirty) return errors;
       !this.$v.password.minLength &&
-      errors.push("Password must be at most 8 characters long");
+      errors.push("The password must consist at least 8 characters");
       !this.$v.password.required && errors.push("Password is required.");
       return errors;
     },
@@ -100,33 +124,33 @@ export default {
 
   methods: {
     signUp() {
-      if (this.isValid) {
-        this.isLoading = true;
-        this.$apollo
-            .mutate({
-              mutation: REGISTER_MUTATION,
-              variables: {
-                login: this.email,
-                password: this.password,
-              },
-            })
-            .then((response) => {
-              localStorage.setItem(
-                  "accessToken",
-                  response.data.authenticate.accessToken
-              );
-              localStorage.setItem(
-                  "refreshToken",
-                  response.data.authenticate.refreshToken
-              );
-            })
-            .catch((error) => console.log(error));
-      }
+      this.isLoading = true;
+      this.$apollo
+          .mutate({
+            mutation: REGISTER_MUTATION,
+            variables: {
+              login: this.email,
+              password: this.password,
+            },
+          })
+          .then((response) => {
+            localStorage.setItem(
+                "accessToken",
+                response.data.authenticate.accessToken
+            );
+            localStorage.setItem(
+                "refreshToken",
+                response.data.authenticate.refreshToken
+            );
+            this.$router.push("/Dashboard");
+          })
+          .catch((error) => console.log(error));
       this.$v.$touch();
       this.signedUp = true;
-    },
-  },
-};
+      this.isLoading = true;
+    }
+  }
+}
 </script>
 
 <style scoped></style>
